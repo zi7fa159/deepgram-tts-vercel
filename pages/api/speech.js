@@ -1,14 +1,17 @@
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
 export default function handler(req, res) {
-  // For simplicity, always return the default speech MP3 file.
-  // In a full implementation, you would retrieve the generated file based on the id.
-  const filePath = path.join(process.cwd(), 'public', 'speech', 'default.mp3');
+  // Extract the filename from the URL.
+  // req.url is like "/speech/filename.mp3", so we extract the file part.
+  const parts = req.url.split('/');
+  const file = parts.pop() || parts.pop(); // handles potential trailing slash
+  const filePath = path.join('/tmp', file);
+
   if (fs.existsSync(filePath)) {
     res.setHeader('Content-Type', 'audio/mpeg');
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    const stream = fs.createReadStream(filePath);
+    stream.pipe(res);
   } else {
     res.status(404).json({ message: 'Audio file not found' });
   }

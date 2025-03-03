@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/speech.mp3",
+      "destination": "/api/speech"
+    }
+  ]
+}

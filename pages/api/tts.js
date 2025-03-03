@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { generateFileName } from '../../../utils'; // Corrected import
+import { generateFileName } from '../../utils/utils'; // Corrected import
 
 export default async function handler(req, res) {
   console.log("Deepgram URL:", process.env.DEEPGRAM_TTS_API_URL);
@@ -20,8 +20,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Prepare payload with only text (as required by Deepgram)
-    const payload = { text };
+    const payload = { text }; // Send only text as required by Deepgram API
 
     const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
       method: "POST",
@@ -38,17 +37,16 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    // Get the audio file data from Deepgram
+    // Get the audio data
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Generate a filename using the provided id (or session id) and current timestamp
+    // Generate the filename and save it in /tmp
     const filename = generateFileName(id);
-    // Write the file to the /tmp directory (which is writable on Vercel)
     const filePath = path.join('/tmp', filename);
     fs.writeFileSync(filePath, buffer);
 
-    // Return the URL for retrieving the file
+    // Return the URL to retrieve the file
     return res.status(200).json({ success: true, url: `/speech/${filename}` });
   } catch (error) {
     console.error("Fetch Error:", error);

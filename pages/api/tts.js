@@ -12,34 +12,64 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Create Deepgram client
     const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
     
-    // Get the response as an ArrayBuffer
-    const response = await deepgram.speak.request(
-      { text },
-      { model: 'aura-asteria-en' }
-    );
+    // Based on Deepgram SDK v3.0.0 documentation
+    const options = {
+      text: text,
+      voice: 'asteria', // Default voice
+      encoding: 'mp3'   // Request MP3 format
+    };
     
-    // Convert ArrayBuffer to Buffer
-    const audioBuffer = Buffer.from(response);
+    // Log what we're sending to Deepgram
+    console.log('Sending to Deepgram:', options);
     
-    if (!audioBuffer || audioBuffer.length === 0) {
-      throw new Error('Failed to generate audio buffer');
+    // Use raw fetch for more control over the request
+    const response = await fetch('https://api.deepgram.com/v1/speak', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(options)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Deepgram API error: ${response.status} ${errorData.message || response.statusText}`);
     }
-
+    
+    // Get the audio as a buffer
+    const audioArrayBuffer = await response.arrayBuffer();
+    const audioBuffer = Buffer.from(audioArrayBuffer);
+    
+    console.log(`Received ${audioBuffer.length} bytes of audio from Deepgram`);
+    
+    if (audioBuffer.length === 0) {
+      throw new Error('Empty audio buffer received from Deepgram');
+    }
+    
     // Save the buffer to a file
     const saved = saveAudioFile(audioBuffer);
     if (!saved) {
       throw new Error('Failed to save audio file');
     }
+    
+    console.log('Audio file saved successfully');
 
     res.status(200).json({ 
       success: true, 
       url: '/speech.mp3',
-      message: 'Speech generated and saved successfully'
+      message: 'Speech generated and saved successfully',
+      size: audioBuffer.length
     });
   } catch (error) {
-    console.error('Error generating speech:', error.message);
-    res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+    console.error('Error generating speech:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error', 
+      error: error.message || String(error)
+    });
   }
 }

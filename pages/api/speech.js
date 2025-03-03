@@ -3,7 +3,6 @@ import path from 'path';
 
 export default function handler(req, res) {
   // Extract the filename from the URL.
-  // req.url is like "/speech/filename.mp3", so we extract the file part.
   const parts = req.url.split('/');
   const file = parts.pop() || parts.pop(); // handles potential trailing slash
   const filePath = path.join('/tmp', file);

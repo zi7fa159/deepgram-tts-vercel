@@ -1,4 +1,5 @@
 import { createClient } from '@deepgram/sdk';
+import { saveAudioFile } from '../../utils/fs';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -17,15 +18,22 @@ export default async function handler(req, res) {
       { model: 'aura-asteria-en' }
     );
 
-    const audioBuffer = await response.getBuffer(); // Use getBuffer instead of getStream
+    const audioBuffer = await response.getBuffer();
     if (!audioBuffer) {
       throw new Error('Failed to generate audio buffer');
     }
 
-    // Store the buffer globally (in-memory, ephemeral in serverless)
-    global.latestAudioBuffer = audioBuffer;
+    // Save the buffer to a file
+    const saved = saveAudioFile(audioBuffer);
+    if (!saved) {
+      throw new Error('Failed to save audio file');
+    }
 
-    res.status(200).json({ success: true, url: '/speech.mp3' });
+    res.status(200).json({ 
+      success: true, 
+      url: '/speech.mp3',
+      message: 'Speech generated and saved successfully'
+    });
   } catch (error) {
     console.error('Error generating speech:', error.message);
     res.status(500).json({ success: false, message: 'Internal server error', error: error.message });

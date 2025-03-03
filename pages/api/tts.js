@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { generateFileName } from '../../utils';
+import { generateFileName } from '../../../utils'; // Corrected import
 
 export default async function handler(req, res) {
   console.log("Deepgram URL:", process.env.DEEPGRAM_TTS_API_URL);

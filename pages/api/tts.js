@@ -13,13 +13,17 @@ export default async function handler(req, res) {
 
   try {
     const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
+    
+    // Get the response as an ArrayBuffer
     const response = await deepgram.speak.request(
       { text },
       { model: 'aura-asteria-en' }
     );
-
-    const audioBuffer = await response.getBuffer();
-    if (!audioBuffer) {
+    
+    // Convert ArrayBuffer to Buffer
+    const audioBuffer = Buffer.from(response);
+    
+    if (!audioBuffer || audioBuffer.length === 0) {
       throw new Error('Failed to generate audio buffer');
     }
 

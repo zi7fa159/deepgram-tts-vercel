@@ -2,9 +2,8 @@ import fs from 'fs';
 import path from 'path';
 
 export default function handler(req, res) {
-  // Extract the filename from the URL.
   const parts = req.url.split('/');
-  const file = parts.pop() || parts.pop(); // handles potential trailing slash
+  const file = parts.pop() || parts.pop(); // Get filename from URL
   const filePath = path.join('/tmp', file);
 
   if (fs.existsSync(filePath)) {

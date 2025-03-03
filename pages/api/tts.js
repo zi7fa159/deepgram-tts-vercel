@@ -16,13 +16,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    const payload = { text }; // ✅ Send only "text", not both "text" and "url"
+
     const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Token ${process.env.DEEPGRAM_API_KEY}`,
       },
-      body: JSON.stringify({ text, voice }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -31,8 +33,8 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    const data = await response.json();
-    return res.status(200).json(data);
+    // ✅ Deepgram API returns an audio file, return the expected URL format
+    return res.status(200).json({ success: true, url: `/speech/${id}.mp3` });
   } catch (error) {
     console.error("Fetch Error:", error);
     return res.status(500).json({ success: false, message: error.message });

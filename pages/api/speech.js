@@ -1,20 +1,20 @@
 import { createClient } from '@deepgram/sdk';
-import Redis from 'ioredis';
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
+
+  const { text } = req.query;
+  if (!text) {
+    return res.status(400).json({ message: 'Text parameter is required' });
+  }
+
   try {
-    const redis = new Redis(process.env.REDIS_URL);
-    const text = await redis.get('latest_text');
-    await redis.quit();
-
-    if (!text) {
-      return res.status(404).json({ success: false, message: 'No text available' });
-    }
-
     const deepgram = createClient(process.env.DEEPGRAM_API_KEY);
     const response = await deepgram.speak.request(
       { text },
-      { model: 'aura-asteria-en' }
+      { model: 'aura-asteria-en' } // Adjust voice model as needed
     );
 
     const stream = await response.getStream();
@@ -26,6 +26,6 @@ export default async function handler(req, res) {
     stream.pipe(res);
   } catch (error) {
     console.error('Error generating speech:', error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 }

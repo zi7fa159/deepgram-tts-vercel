@@ -1,4 +1,7 @@
 export default async function handler(req, res) {
+  console.log("Deepgram URL:", process.env.DEEPGRAM_TTS_API_URL);
+  console.log("Deepgram API Key:", process.env.DEEPGRAM_API_KEY ? "Present" : "Missing");
+
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Only GET requests allowed" });
   }
@@ -8,8 +11,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ message: "No text provided" });
   }
 
+  if (!process.env.DEEPGRAM_TTS_API_URL || !process.env.DEEPGRAM_API_KEY) {
+    return res.status(500).json({ success: false, message: "Missing Deepgram API credentials" });
+  }
+
   try {
-    // Call the Deepgram TTS API using POST even though this endpoint is triggered via GET.
     const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
       method: "POST",
       headers: {
@@ -21,13 +27,14 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("Deepgram API Error:", errorText);
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    // We assume the Deepgram API processed the text and generated the audio.
-    // For demo purposes, we assume the audio file is available at /speech/{id}.mp3.
-    return res.status(200).json({ success: true, url: `/speech/${id}.mp3` });
+    const data = await response.json();
+    return res.status(200).json(data);
   } catch (error) {
+    console.error("Fetch Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }

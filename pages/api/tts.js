@@ -35,9 +35,11 @@ export default async function handler(req, res) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Set correct headers and send the audio buffer
+    // Set headers to trigger download
     res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Disposition", `attachment; filename="tts_audio.mp3"`);
     res.setHeader("Content-Length", buffer.length);
+    
     res.status(200).send(buffer);
   } catch (error) {
     console.error("Fetch Error:", error);

@@ -39,8 +39,9 @@ export default async function handler(req, res) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    // **Set headers to force audio download, not HTML rendering**
     res.setHeader('Content-Type', 'audio/wav');
-    res.setHeader('Content-Disposition', 'inline; filename="speech.wav"');
+    res.setHeader('Content-Disposition', 'attachment; filename="speech.wav"'); // Forces download
     res.setHeader('Content-Length', buffer.length);
 
     return res.status(200).send(buffer);

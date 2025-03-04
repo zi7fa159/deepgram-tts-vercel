@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   }
 
   const { text } = req.query;
-  if (!t) {
+  if (!text) {
     return res.status(400).json({ message: "No text provided" });
   }
 

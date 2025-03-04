@@ -17,21 +17,22 @@ export default async function handler(req, res) {
         const response = await axios.post(apiUrl, {
             text: text,
             voice_id: "emily",
-            format: "wav"  // Request WAV format
+            format: "wav"  // Ensure WAV format
         }, {
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json"
             },
-            responseType: "stream"  // Stream response to avoid buffer issues
+            responseType: "arraybuffer"  // Use arraybuffer to get raw binary data
         });
 
-        // Set headers for WAV file
+        // Set response headers for WAV file
         res.setHeader("Content-Type", "audio/wav");
         res.setHeader("Content-Disposition", `attachment; filename="speech.wav"`);
+        res.setHeader("Content-Length", response.data.length);
 
-        // Pipe the response directly to the client
-        response.data.pipe(res);
+        // Send raw audio data
+        res.status(200).send(Buffer.from(response.data, "binary"));
     } catch (error) {
         console.error("Error fetching TTS:", error?.response?.data || error.message);
         res.status(500).json({ success: false, message: "Internal Server Error" });

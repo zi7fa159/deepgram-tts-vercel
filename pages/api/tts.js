@@ -16,7 +16,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
+    // Create a URL object from the Deepgram TTS API URL
+    const ttsUrl = new URL(process.env.DEEPGRAM_TTS_API_URL);
+    // Append the voice parameters to the query string
+    ttsUrl.searchParams.append('dg-model-name', 'aura-perseus-en');
+    ttsUrl.searchParams.append('dg-model-uuid', 'e2e5cac7-1e3e-4c6c-8703-d1ba0eddb781');
+
+    // Send only the text as JSON body
+    const response = await fetch(ttsUrl.toString(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -31,15 +38,15 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    // Convert response to buffer
+    // Convert the response to a buffer
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Set headers to trigger download
+    // Set headers to force a download of the generated MP3 file
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Content-Disposition", `attachment; filename="tts_audio.mp3"`);
     res.setHeader("Content-Length", buffer.length);
-    
+
     res.status(200).send(buffer);
   } catch (error) {
     console.error("Fetch Error:", error);

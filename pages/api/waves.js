@@ -23,16 +23,17 @@ export default async function handler(req, res) {
 
         // Convert response to buffer
         const audioBuffer = await response.arrayBuffer();
+        const audioData = Buffer.from(audioBuffer);
 
-        // Set response headers for audio file
+        // Set proper headers
         res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Length", audioBuffer.byteLength);
-        res.setHeader("Content-Disposition", "inline; filename=speech.mp3");
+        res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
+        res.setHeader("Content-Length", audioData.length);
 
         // Send audio file
-        res.send(Buffer.from(audioBuffer));
+        res.end(audioData);
     } catch (error) {
         console.error("Server Error:", error);
-        res.status(500).json({ success: false, message: error.toString() });
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 }

@@ -21,16 +21,17 @@ export default async function handler(req, res) {
             return res.status(apiResponse.status).json({ success: false, message: errorText });
         }
 
-        // Convert response to a buffer
-        const audioBuffer = await apiResponse.arrayBuffer();
-
-        // Set headers for proper MP3 response
+        // Stream the MP3 file directly from the API response to the user
         res.setHeader("Content-Type", "audio/mpeg");
         res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
-        res.setHeader("Content-Length", audioBuffer.byteLength);
 
-        // Send binary MP3 data
-        res.end(Buffer.from(audioBuffer));
+        const readableStream = apiResponse.body; // The raw audio stream from API
+        if (!readableStream) {
+            throw new Error("Failed to get audio stream from Waves API.");
+        }
+
+        // Pipe the API response directly to the client
+        readableStream.pipe(res);
     } catch (error) {
         console.error("Server Error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });

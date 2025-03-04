@@ -37,14 +37,27 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: errorText });
     }
 
-    const audioBuffer = await response.arrayBuffer(); // Convert to Buffer
-
-    // Set headers to serve MP3 properly
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Disposition', 'inline; filename="speech.mp3"');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
-    // Send binary MP3 data
-    res.send(Buffer.from(audioBuffer));
+    const reader = response.body.getReader();
+    res.status(200);
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          controller.enqueue(value);
+        }
+        controller.close();
+      },
+    });
+
+    return new Response(stream).body.pipe(res);
   } catch (error) {
     console.error('Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });

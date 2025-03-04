@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
+    const response = await fetch(`${process.env.DEEPGRAM_TTS_API_URL}?model=perseus`, { // Specify Perseus model
       method: "POST",
       headers: {
         "Content-Type": "application/json",

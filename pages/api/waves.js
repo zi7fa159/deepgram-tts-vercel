@@ -1,3 +1,5 @@
+import { spawn } from 'child_process';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Only GET requests are allowed' });
@@ -37,14 +39,32 @@ export default async function handler(req, res) {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const wavBuffer = Buffer.from(arrayBuffer);
 
-    // **Set headers to force audio download, not HTML rendering**
-    res.setHeader('Content-Type', 'audio/wav');
-    res.setHeader('Content-Disposition', 'attachment; filename="speech.wav"'); // Forces download
-    res.setHeader('Content-Length', buffer.length);
+    // Convert WAV to MP3 using FFmpeg
+    const ffmpeg = spawn('ffmpeg', ['-i', 'pipe:0', '-f', 'mp3', 'pipe:1']);
+    ffmpeg.stdin.write(wavBuffer);
+    ffmpeg.stdin.end();
 
-    return res.status(200).send(buffer);
+    let mp3Buffer = Buffer.alloc(0);
+    ffmpeg.stdout.on('data', (chunk) => {
+      mp3Buffer = Buffer.concat([mp3Buffer, chunk]);
+    });
+
+    ffmpeg.stderr.on('data', (data) => {
+      console.error(`FFmpeg error: ${data}`);
+    });
+
+    ffmpeg.on('close', (code) => {
+      if (code === 0) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Disposition', 'attachment; filename="speech.mp3"');
+        res.setHeader('Content-Length', mp3Buffer.length);
+        res.status(200).send(mp3Buffer);
+      } else {
+        res.status(500).json({ success: false, message: 'FFmpeg conversion failed' });
+      }
+    });
   } catch (error) {
     console.error('Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });

@@ -31,16 +31,21 @@ export default async function handler(req, res) {
       body: JSON.stringify(requestBody),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Waves API Error:', errorText);
-      return res.status(response.status).json({ success: false, message: errorText });
+    // Handle API errors (JSON responses)
+    const contentType = response.headers.get('content-type');
+    if (!response.ok || contentType.includes('application/json')) {
+      const errorData = await response.json();
+      console.error('Waves API Error:', errorData);
+      return res.status(400).json({ success: false, message: errorData.message || 'Failed to generate speech' });
     }
 
+    // Ensure we get an audio stream
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Disposition', 'inline; filename="speech.mp3"');
 
-    response.body.pipe(res); // Stream audio directly
+    const arrayBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer)); // Send MP3 buffer directly
+
   } catch (error) {
     console.error('Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });

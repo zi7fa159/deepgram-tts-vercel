@@ -1,47 +1,48 @@
-import axios from "axios";
-
 export default async function handler(req, res) {
-    if (req.method !== "GET") {
-        return res.status(405).json({ success: false, message: "Method Not Allowed" });
+  console.log("Deepgram URL:", process.env.DEEPGRAM_TTS_API_URL);
+  console.log("Deepgram API Key:", process.env.DEEPGRAM_API_KEY ? "Present" : "Missing");
+
+  if (req.method !== "GET") {
+    return res.status(405).json({ message: "Only GET requests allowed" });
+  }
+
+  const { text } = req.query;
+  if (!text) {
+    return res.status(400).json({ message: "No text provided" });
+  }
+
+  if (!process.env.DEEPGRAM_TTS_API_URL || !process.env.DEEPGRAM_API_KEY) {
+    return res.status(500).json({ success: false, message: "Missing Deepgram API credentials" });
+  }
+
+  try {
+    const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${process.env.DEEPGRAM_API_KEY}`,
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Deepgram API Error:", errorText);
+      return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    const { text } = req.query;
-    if (!text) {
-        return res.status(400).json({ success: false, message: "Missing text parameter" });
-    }
+    // Convert response to buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    try {
-        const apiUrl = "https://waves-api.smallest.ai/api/v1/lightning/get_speech";
-        const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2M2NTJjZWZlNGVkZmExNTk4MDk4ZjEiLCJpYXQiOjE3NDEwNTQ5MjJ9.zoHXDZvg9DWUMqBrAgfhuAVzkqRKYwjDoKE8eMriT0g";
-
-        const response = await axios.post(apiUrl, {
-            text: text,
-            voice_id: "emily",
-            format: "mp3"
-        }, {
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
-            },
-            responseType: "arraybuffer"  // Force binary response
-        });
-
-        console.log("✅ Response received");
-        console.log("🔹 Content-Type:", response.headers["content-type"]);
-        console.log("🔹 Content-Length:", response.headers["content-length"]);
-        console.log("🔹 First 10 bytes:", response.data.slice(0, 10)); // Log start of binary
-
-        if (!response.data || response.data.length < 10) {
-            throw new Error("Received invalid audio data");
-        }
-
-        res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
-        res.setHeader("Content-Length", response.data.length.toString());
-
-        res.status(200).send(Buffer.from(response.data)); // Ensures correct binary output
-    } catch (error) {
-        console.error("❌ Error fetching TTS:", error?.response?.data || error.message);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
+    // Set headers to trigger download
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Disposition", `attachment; filename="tts_audio.mp3"`);
+    res.setHeader("Content-Length", buffer.length);
+    
+    res.status(200).send(buffer);
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
 }

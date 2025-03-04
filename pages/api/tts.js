@@ -1,7 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-import { generateFileName } from '../../utils/utils'; // Corrected import
-
 export default async function handler(req, res) {
   console.log("Deepgram URL:", process.env.DEEPGRAM_TTS_API_URL);
   console.log("Deepgram API Key:", process.env.DEEPGRAM_API_KEY ? "Present" : "Missing");
@@ -10,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Only GET requests allowed" });
   }
 
-  const { text, id, voice } = req.query;
+  const { text, voice } = req.query;
   if (!text) {
     return res.status(400).json({ message: "No text provided" });
   }
@@ -37,17 +33,8 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    // Get the audio data
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Generate the filename and save it in /tmp
-    const filename = generateFileName(id);
-    const filePath = path.join('/tmp', filename);
-    fs.writeFileSync(filePath, buffer);
-
-    // Return the URL to retrieve the file
-    return res.status(200).json({ success: true, url: `/speech/${filename}` });
+    res.setHeader('Content-Type', 'audio/mpeg');
+    response.body.pipe(res); // Stream the audio response directly to the client
   } catch (error) {
     console.error("Fetch Error:", error);
     return res.status(500).json({ success: false, message: error.message });

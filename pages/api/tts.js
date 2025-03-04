@@ -22,11 +22,7 @@ export default async function handler(req, res) {
         "Content-Type": "application/json",
         "Authorization": `Token ${process.env.DEEPGRAM_API_KEY}`,
       },
-      body: JSON.stringify({
-        text,
-        model: "aura-perseus-en", // Perseus voice model
-        model_uuid: "e2e5cac7-1e3e-4c6c-8703-d1ba0eddb781",
-      }),
+      body: JSON.stringify({ text }),
     });
 
     if (!response.ok) {

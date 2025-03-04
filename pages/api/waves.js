@@ -21,13 +21,16 @@ export default async function handler(req, res) {
             return res.status(response.status).json({ success: false, message: errorText });
         }
 
-        // Log successful response
-        console.log("Waves API Response Headers:", response.headers);
+        // Convert response to buffer
+        const audioBuffer = await response.arrayBuffer();
 
+        // Set response headers for audio file
         res.setHeader("Content-Type", "audio/mpeg");
-        
-        // Stream the response directly
-        response.body.pipe(res);
+        res.setHeader("Content-Length", audioBuffer.byteLength);
+        res.setHeader("Content-Disposition", "inline; filename=speech.mp3");
+
+        // Send audio file
+        res.send(Buffer.from(audioBuffer));
     } catch (error) {
         console.error("Server Error:", error);
         res.status(500).json({ success: false, message: error.toString() });

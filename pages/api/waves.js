@@ -9,14 +9,14 @@ export default async function handler(req, res) {
   }
 
   if (!process.env.WAVES_TTS_API_URL || !process.env.WAVES_API_KEY) {
-    console.error('Missing WAVES API credentials');
+    console.error('❌ Missing WAVES API credentials');
     return res.status(500).json({ success: false, message: 'Missing Waves API credentials' });
   }
 
-  console.log('Sending request to Waves API...');
-  console.log('URL:', process.env.WAVES_TTS_API_URL);
-  console.log('API Key:', process.env.WAVES_API_KEY ? 'Present' : 'Missing');
-  console.log('Text:', text);
+  console.log('🟢 Sending request to Waves API...');
+  console.log('🌍 URL:', process.env.WAVES_TTS_API_URL);
+  console.log('🔑 API Key:', process.env.WAVES_API_KEY ? 'Present' : 'Missing');
+  console.log('📝 Text:', text);
 
   try {
     const response = await fetch(process.env.WAVES_TTS_API_URL, {
@@ -28,14 +28,15 @@ export default async function handler(req, res) {
       body: JSON.stringify({ text })
     });
 
-    console.log('Waves API Response Status:', response.status);
-    
+    console.log('🔄 Waves API Response Status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Waves API Error:', errorText);
+      console.error('❌ Waves API Error:', errorText);
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
+    console.log('✅ Received Audio Data');
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
 
     return res.status(200).send(buffer);
   } catch (error) {
-    console.error('Fetch Error:', error);
+    console.error('🚨 Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }

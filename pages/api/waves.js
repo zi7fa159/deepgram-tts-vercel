@@ -1,62 +1,45 @@
-import axios from "axios";
-
 export default async function handler(req, res) {
-    console.log("🟢 New request received");
-
     if (req.method !== "GET") {
-        console.log("❌ Invalid method:", req.method);
         return res.status(405).json({ success: false, message: "Method Not Allowed" });
     }
 
-    const { text } = req.query;
-    if (!text) {
-        console.log("❌ Missing text parameter");
-        return res.status(400).json({ success: false, message: "Missing text parameter" });
-    }
-
-    console.log(`🔹 Text received: ${text}`);
+    const { text = "Hello", voice_id = "emily", format = "mp3" } = req.query;
 
     try {
-        const apiUrl = "https://waves-api.smallest.ai/api/v1/lightning/get_speech";
-        const apiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2M2NTJjZWZlNGVkZmExNTk4MDk4ZjEiLCJpYXQiOjE3NDEwNTQ5MjJ9.zoHXDZvg9DWUMqBrAgfhuAVzkqRKYwjDoKE8eMriT0g";
-
-        console.log("🔹 Sending request to Waves API...");
-
-        const response = await axios.post(apiUrl, {
-            text: text,
-            voice_id: "emily",
-            format: "mp3"
-        }, {
+        const apiResponse = await fetch("https://waves-api.smallest.ai/api/v1/lightning/get_speech", {
+            method: "POST",
             headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
+                "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2M2NTJjZWZlNGVkZmExNTk4MDk4ZjEiLCJpYXQiOjE3NDEwNTQ5MjJ9.zoHXDZvg9DWUMqBrAgfhuAVzkqRKYwjDoKE8eMriT0g",
+                "Content-Type": "application/json",
             },
-            responseType: "arraybuffer"  // Binary response
+            body: JSON.stringify({ text, voice_id, format }),
         });
 
-        console.log("✅ Response received from Waves API");
-        console.log("🔹 Response Status:", response.status);
-        console.log("🔹 Response Headers:", response.headers);
-
-        if (!response.data || response.data.length < 10) {
-            console.log("❌ Invalid or empty audio data received");
-            throw new Error("Received invalid audio data");
+        if (!apiResponse.ok) {
+            const errorText = await apiResponse.text();
+            console.error("Waves API Error:", errorText);
+            return res.status(apiResponse.status).json({ success: false, message: errorText });
         }
 
-        console.log("🔹 Content-Type:", response.headers["content-type"]);
-        console.log("🔹 Content-Length:", response.headers["content-length"]);
-        console.log("🔹 First 20 bytes:", response.data.slice(0, 20));  // Log MP3 header
+        // ✅ Convert response to binary buffer
+        const audioBuffer = await apiResponse.arrayBuffer();
+        const buffer = Buffer.from(audioBuffer);
 
+        // ✅ Validate the MP3 file size
+        if (buffer.length < 1000) {
+            console.error("Invalid MP3 File: Too small!");
+            return res.status(500).json({ success: false, message: "Invalid MP3 File" });
+        }
+
+        // ✅ Set correct headers
         res.setHeader("Content-Type", "audio/mpeg");
         res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
-        res.setHeader("Content-Length", response.data.length.toString());
+        res.setHeader("Content-Length", buffer.length);
 
-        console.log("🚀 Sending MP3 file to client...");
-        res.status(200).send(Buffer.from(response.data));
-        console.log("✅ File sent successfully!");
-
+        // ✅ Send MP3 as a binary response
+        res.end(buffer);
     } catch (error) {
-        console.error("❌ Error fetching TTS:", error?.response?.data || error.message);
-        res.status(500).json({ success: false, message: "Internal Server Error", error: error?.response?.data || error.message });
+        console.error("Server Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 }

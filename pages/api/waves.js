@@ -17,13 +17,19 @@ export default async function handler(req, res) {
 
         if (!response.ok) {
             const errorText = await response.text();
+            console.error("Waves API Error:", errorText);
             return res.status(response.status).json({ success: false, message: errorText });
         }
 
+        // Log successful response
+        console.log("Waves API Response Headers:", response.headers);
+
         res.setHeader("Content-Type", "audio/mpeg");
+        
+        // Stream the response directly
         response.body.pipe(res);
     } catch (error) {
-        console.error("Error:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
+        console.error("Server Error:", error);
+        res.status(500).json({ success: false, message: error.toString() });
     }
 }

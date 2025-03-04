@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     voice_id,
     sample_rate: parseInt(sample_rate),
     speed: parseFloat(speed),
-    format, // Request MP3 format
+    format, // Ensure MP3 format
   };
 
   try {
@@ -31,21 +31,18 @@ export default async function handler(req, res) {
       body: JSON.stringify(requestBody),
     });
 
-    // Check for errors
-    const contentType = response.headers.get('content-type');
-    if (!response.ok || !contentType.includes('audio/mpeg')) {
-      const errorData = await response.json();
-      console.error('Waves API Error:', errorData);
-      return res.status(400).json({ success: false, message: errorData.message || 'Failed to generate speech' });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Waves API Error:', errorText);
+      return res.status(400).json({ success: false, message: errorText });
     }
 
-    // Set response headers for MP3
+    // Set headers to serve audio properly
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Disposition', 'attachment; filename="speech.mp3"');
+    res.setHeader('Content-Disposition', 'inline; filename="speech.mp3"');
 
-    // Stream MP3 response properly
-    const audioStream = await response.body;
-    audioStream.pipe(res);
+    // Stream response directly to client
+    response.body.pipe(res);
   } catch (error) {
     console.error('Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });

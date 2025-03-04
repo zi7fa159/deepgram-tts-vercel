@@ -1,11 +1,9 @@
-import { spawn } from 'child_process';
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Only GET requests are allowed' });
   }
 
-  const { text, voice_id = 'emily', sample_rate = 24000, speed = 1.0 } = req.query;
+  const { text, voice_id = 'emily', sample_rate = 24000, speed = 1.0, format = 'mp3' } = req.query;
 
   if (!text) {
     return res.status(400).json({ success: false, message: 'Text is required' });
@@ -20,6 +18,7 @@ export default async function handler(req, res) {
     voice_id,
     sample_rate: parseInt(sample_rate),
     speed: parseFloat(speed),
+    format, // Request MP3 format directly
   };
 
   try {
@@ -38,33 +37,10 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const wavBuffer = Buffer.from(arrayBuffer);
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Disposition', 'inline; filename="speech.mp3"');
 
-    // Convert WAV to MP3 using FFmpeg
-    const ffmpeg = spawn('ffmpeg', ['-i', 'pipe:0', '-f', 'mp3', 'pipe:1']);
-    ffmpeg.stdin.write(wavBuffer);
-    ffmpeg.stdin.end();
-
-    let mp3Buffer = Buffer.alloc(0);
-    ffmpeg.stdout.on('data', (chunk) => {
-      mp3Buffer = Buffer.concat([mp3Buffer, chunk]);
-    });
-
-    ffmpeg.stderr.on('data', (data) => {
-      console.error(`FFmpeg error: ${data}`);
-    });
-
-    ffmpeg.on('close', (code) => {
-      if (code === 0) {
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Disposition', 'attachment; filename="speech.mp3"');
-        res.setHeader('Content-Length', mp3Buffer.length);
-        res.status(200).send(mp3Buffer);
-      } else {
-        res.status(500).json({ success: false, message: 'FFmpeg conversion failed' });
-      }
-    });
+    response.body.pipe(res); // Stream audio directly
   } catch (error) {
     console.error('Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });

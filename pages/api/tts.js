@@ -23,18 +23,25 @@ export default async function handler(req, res) {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json"
             },
-            responseType: "arraybuffer"  // Get raw binary data
+            responseType: "arraybuffer"  // Force binary response
         });
 
-        // Set MP3 response headers
-        res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Disposition", `attachment; filename="speech.mp3"`);
-        res.setHeader("Content-Length", response.data.length);
+        console.log("✅ Response received");
+        console.log("🔹 Content-Type:", response.headers["content-type"]);
+        console.log("🔹 Content-Length:", response.headers["content-length"]);
+        console.log("🔹 First 10 bytes:", response.data.slice(0, 10)); // Log start of binary
 
-        // Send the MP3 data as binary
-        res.status(200).send(Buffer.from(response.data, "binary"));
+        if (!response.data || response.data.length < 10) {
+            throw new Error("Received invalid audio data");
+        }
+
+        res.setHeader("Content-Type", "audio/mpeg");
+        res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
+        res.setHeader("Content-Length", response.data.length.toString());
+
+        res.status(200).send(Buffer.from(response.data)); // Ensures correct binary output
     } catch (error) {
-        console.error("Error fetching TTS:", error?.response?.data || error.message);
+        console.error("❌ Error fetching TTS:", error?.response?.data || error.message);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 }

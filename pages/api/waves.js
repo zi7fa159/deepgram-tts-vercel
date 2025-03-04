@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     const { text = "Hello", voice_id = "emily", format = "mp3" } = req.query;
 
     try {
-        const response = await fetch("https://waves-api.smallest.ai/api/v1/lightning/get_speech", {
+        const apiResponse = await fetch("https://waves-api.smallest.ai/api/v1/lightning/get_speech", {
             method: "POST",
             headers: {
                 "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2M2NTJjZWZlNGVkZmExNTk4MDk4ZjEiLCJpYXQiOjE3NDEwNTQ5MjJ9.zoHXDZvg9DWUMqBrAgfhuAVzkqRKYwjDoKE8eMriT0g",
@@ -15,17 +15,22 @@ export default async function handler(req, res) {
             body: JSON.stringify({ text, voice_id, format }),
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
+        if (!apiResponse.ok) {
+            const errorText = await apiResponse.text();
             console.error("Waves API Error:", errorText);
-            return res.status(response.status).json({ success: false, message: errorText });
+            return res.status(apiResponse.status).json({ success: false, message: errorText });
         }
 
-        // Stream response directly to the client
+        // Convert response to a buffer
+        const audioBuffer = await apiResponse.arrayBuffer();
+
+        // Set headers for proper MP3 response
         res.setHeader("Content-Type", "audio/mpeg");
         res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
+        res.setHeader("Content-Length", audioBuffer.byteLength);
 
-        response.body.pipe(res); // <-- Directly piping the stream to response
+        // Send binary MP3 data
+        res.end(Buffer.from(audioBuffer));
     } catch (error) {
         console.error("Server Error:", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });

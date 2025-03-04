@@ -3,20 +3,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, message: "Method Not Allowed" });
     }
 
-    const WAVES_API_KEY = process.env.WAVES_API_KEY;
-    if (!WAVES_API_KEY) {
-        return res.status(500).json({ success: false, message: "Missing Waves API credentials" });
-    }
-
-    const text = req.query.text || "Hello";  // Get text from URL parameters
-    const voice_id = req.query.voice_id || "emily";  // Default voice
-    const format = req.query.format || "mp3";  // Default format
+    const { text = "Hello", voice_id = "emily", format = "mp3" } = req.query;
 
     try {
         const response = await fetch("https://waves-api.smallest.ai/api/v1/lightning/get_speech", {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${WAVES_API_KEY}`,
+                "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2N2M2NTJjZWZlNGVkZmExNTk4MDk4ZjEiLCJpYXQiOjE3NDEwNTQ5MjJ9.zoHXDZvg9DWUMqBrAgfhuAVzkqRKYwjDoKE8eMriT0g",
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({ text, voice_id, format }),
@@ -27,11 +20,10 @@ export default async function handler(req, res) {
             return res.status(response.status).json({ success: false, message: errorText });
         }
 
-        // Stream the audio response directly to the client
         res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
         response.body.pipe(res);
     } catch (error) {
-        return res.status(500).json({ success: false, message: error.message });
+        console.error("Error:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 }

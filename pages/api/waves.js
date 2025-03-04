@@ -1,9 +1,15 @@
+import fetch from "node-fetch";
+
 export default async function handler(req, res) {
     if (req.method !== "GET") {
         return res.status(405).json({ success: false, message: "Method Not Allowed" });
     }
 
     const { text = "Hello", voice_id = "emily", format = "mp3" } = req.query;
+
+    if (!text || !voice_id) {
+        return res.status(400).json({ success: false, message: "Missing required parameters" });
+    }
 
     try {
         const apiResponse = await fetch("https://waves-api.smallest.ai/api/v1/lightning/get_speech", {
@@ -21,22 +27,22 @@ export default async function handler(req, res) {
             return res.status(apiResponse.status).json({ success: false, message: errorText });
         }
 
-        // ✅ Convert response to binary buffer
+        // Convert response to buffer
         const audioBuffer = await apiResponse.arrayBuffer();
         const buffer = Buffer.from(audioBuffer);
 
-        // ✅ Validate the MP3 file size
+        // Validate MP3 content
         if (buffer.length < 1000) {
             console.error("Invalid MP3 File: Too small!");
             return res.status(500).json({ success: false, message: "Invalid MP3 File" });
         }
 
-        // ✅ Set correct headers
+        // Set headers for direct MP3 response
         res.setHeader("Content-Type", "audio/mpeg");
         res.setHeader("Content-Disposition", 'attachment; filename="speech.mp3"');
         res.setHeader("Content-Length", buffer.length);
 
-        // ✅ Send MP3 as a binary response
+        // Send MP3 file
         res.end(buffer);
     } catch (error) {
         console.error("Server Error:", error);

@@ -37,12 +37,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: errorText });
     }
 
-    // Set headers to serve audio properly
+    const audioBuffer = await response.arrayBuffer(); // Convert to Buffer
+
+    // Set headers to serve MP3 properly
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Disposition', 'inline; filename="speech.mp3"');
 
-    // Stream response directly to client
-    response.body.pipe(res);
+    // Send binary MP3 data
+    res.send(Buffer.from(audioBuffer));
   } catch (error) {
     console.error('Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });

@@ -1,8 +1,5 @@
 {
-  "rewrites": [
-    {
-      "source": "/speech/:filename",
-      "destination": "/api/speech"
-    }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" }
   ]
 }

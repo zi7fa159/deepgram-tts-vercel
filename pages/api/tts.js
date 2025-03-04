@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
+    const response = await fetch(`${process.env.DEEPGRAM_TTS_API_URL}?encoding=linear16&sample_rate=16000`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -36,14 +36,12 @@ export default async function handler(req, res) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Set headers to trigger download
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Content-Disposition", `attachment; filename="tts_audio.mp3"`);
+    res.setHeader("Content-Type", "audio/wav");
+    res.setHeader("Content-Disposition", `attachment; filename="tts_audio.wav"`);
     res.setHeader("Content-Length", buffer.length);
-    
     res.status(200).send(buffer);
   } catch (error) {
     console.error("Fetch Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }
-

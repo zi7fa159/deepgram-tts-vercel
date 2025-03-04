@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Only GET requests allowed" });
   }
 
-  const { text, voice } = req.query;
+  const { text } = req.query;
   if (!text) {
     return res.status(400).json({ message: "No text provided" });
   }
@@ -16,15 +16,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const payload = { text }; // Send only text as required by Deepgram API
-
     const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Token ${process.env.DEEPGRAM_API_KEY}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ text }),
     });
 
     if (!response.ok) {
@@ -33,8 +31,14 @@ export default async function handler(req, res) {
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    res.setHeader('Content-Type', 'audio/mpeg');
-    response.body.pipe(res); // Stream the audio response directly to the client
+    // Convert response to buffer
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Set correct headers and send the audio buffer
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Length", buffer.length);
+    res.status(200).send(buffer);
   } catch (error) {
     console.error("Fetch Error:", error);
     return res.status(500).json({ success: false, message: error.message });

@@ -1,52 +1,52 @@
+import FormData from 'form-data';
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Only GET requests allowed' });
+    return res.status(405).json({ message: 'Only GET requests are allowed' });
   }
 
-  const { text } = req.query;
+  const { text, voice_id = 'emily', sample_rate = 24000, speed = 1.0 } = req.query;
+
   if (!text) {
-    return res.status(400).json({ message: 'No text provided' });
+    return res.status(400).json({ success: false, message: 'Text is required' });
   }
 
-  if (!process.env.WAVES_TTS_API_URL || !process.env.WAVES_API_KEY) {
-    console.error('❌ Missing WAVES API credentials');
-    return res.status(500).json({ success: false, message: 'Missing Waves API credentials' });
+  if (!process.env.WAVES_API_KEY) {
+    return res.status(500).json({ success: false, message: 'WAVES_API_KEY is not set' });
   }
 
-  console.log('🟢 Sending request to Waves API...');
-  console.log('🌍 URL:', process.env.WAVES_TTS_API_URL);
-  console.log('🔑 API Key:', process.env.WAVES_API_KEY ? 'Present' : 'Missing');
-  console.log('📝 Text:', text);
+  const form = new FormData();
+  form.append('text', text);
+  form.append('voice_id', voice_id);
+  form.append('sample_rate', sample_rate);
+  form.append('speed', speed);
 
   try {
-    const response = await fetch(process.env.WAVES_TTS_API_URL, {
+    const response = await fetch('https://waves-api.smallest.ai/api/v1/lightning/get_speech', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.WAVES_API_KEY}`
+        Authorization: `Bearer ${process.env.WAVES_API_KEY}`,
+        ...form.getHeaders(),
       },
-      body: JSON.stringify({ text })
+      body: form,
     });
-
-    console.log('🔄 Waves API Response Status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('❌ Waves API Error:', errorText);
+      console.error('Waves API Error:', errorText);
       return res.status(response.status).json({ success: false, message: errorText });
     }
 
-    console.log('✅ Received Audio Data');
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Disposition', 'attachment; filename="waves_tts.mp3"');
+    res.setHeader('Content-Type', 'audio/wav');
+    res.setHeader('Content-Disposition', 'inline; filename="speech.wav"');
     res.setHeader('Content-Length', buffer.length);
 
     return res.status(200).send(buffer);
   } catch (error) {
-    console.error('🚨 Fetch Error:', error);
+    console.error('Fetch Error:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 }

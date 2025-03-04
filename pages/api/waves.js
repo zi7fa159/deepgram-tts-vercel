@@ -17,18 +17,18 @@ export default async function handler(req, res) {
         const response = await axios.post(apiUrl, {
             text: text,
             voice_id: "emily",
-            format: "mp3"
+            format: "wav"  // Request WAV format
         }, {
             headers: {
                 "Authorization": `Bearer ${apiKey}`,
                 "Content-Type": "application/json"
             },
-            responseType: "stream"  // Ensure response is treated as a stream
+            responseType: "stream"  // Stream response to avoid buffer issues
         });
 
-        // Set headers to force file download
-        res.setHeader("Content-Type", "audio/mpeg");
-        res.setHeader("Content-Disposition", `attachment; filename="speech.mp3"`);
+        // Set headers for WAV file
+        res.setHeader("Content-Type", "audio/wav");
+        res.setHeader("Content-Disposition", `attachment; filename="speech.wav"`);
 
         // Pipe the response directly to the client
         response.data.pipe(res);

@@ -13,20 +13,21 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, message: 'WAVES_API_KEY is not set' });
   }
 
-  const params = new URLSearchParams();
-  params.append('text', text);
-  params.append('voice_id', voice_id);
-  params.append('sample_rate', sample_rate);
-  params.append('speed', speed);
+  const requestBody = {
+    text,
+    voice_id,
+    sample_rate: parseInt(sample_rate),
+    speed: parseFloat(speed),
+  };
 
   try {
     const response = await fetch('https://waves-api.smallest.ai/api/v1/lightning/get_speech', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${process.env.WAVES_API_KEY}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
       },
-      body: params.toString(),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

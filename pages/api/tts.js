@@ -16,13 +16,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(`${process.env.DEEPGRAM_TTS_API_URL}?model=perseus`, { // Specify Perseus model
+    const response = await fetch(process.env.DEEPGRAM_TTS_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Token ${process.env.DEEPGRAM_API_KEY}`,
       },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({
+        model: "aura-perseus-en", // ✅ Correct Deepgram model name
+        text,
+      }),
     });
 
     if (!response.ok) {
